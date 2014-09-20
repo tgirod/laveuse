@@ -4,18 +4,18 @@
 #include <PlayingWithFusion_MAX31865_STRUCT.h>       // struct library
 
 /* interface utilisateur */
-#define PIN_ARRET A0        // arrêt d'urgence (int.0)
-#define PIN_NETTOYAGE A1    // lancement du nettoyage
-#define PIN_DESINFECTION A2 // lancement de la désinfection
-#define PIN_BEEP A3         // avertisseur sonore
+#define PIN_ARRET 2        // arrêt d'urgence (int.0)
+#define PIN_NETTOYAGE 3    // lancement du nettoyage
+#define PIN_DESINFECTION 4 // lancement de la désinfection
+#define PIN_BEEP 5         // avertisseur sonore
 
 /* asservissement */
-#define PIN_RESEAU 2  // prise d'eau du réseau
-#define PIN_EGOUT 3   // écoulement vers l'égout
-#define PIN_BAC 4     // entrée circuit fermé
-#define PIN_RECUP 5   // écoulement circuit fermé
-#define PIN_POMPE 6   // pompe électrique
-#define PIN_CHAUFFE 7 // thermoplongeur
+#define PIN_RESEAU A0  // prise d'eau du réseau
+#define PIN_EGOUT A1   // écoulement vers l'égout
+#define PIN_BAC A2     // entrée circuit fermé
+#define PIN_RECUP A3   // écoulement circuit fermé
+#define PIN_POMPE A4   // pompe électrique
+#define PIN_CHAUFFE A5 // thermoplongeur
 
 /* capteur */
 #define PIN_SONDE 10 // CS PIN pour la sonde
