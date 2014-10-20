@@ -12,12 +12,12 @@
 #define PIN_BEEP A3         // avertisseur sonore
 
 /* asservissement */
-#define PIN_RESEAU A0 // prise d'eau du réseau (fil blanc)
-#define PIN_EGOUT 3   // écoulement vers l'égout (fil gris)
-#define PIN_BAC 4     // entrée circuit fermé (fil violet)
-#define PIN_RECUP 5   // écoulement circuit fermé (fil bleu)
-#define PIN_POMPE 6   // pompe électrique (fil orange)
-#define PIN_CHAUFFE 7 // thermoplongeur (fil rouge)
+#define PIN_RESEAU A0  // prise d'eau du réseau (fil blanc)
+#define PIN_EGOUT 3    // écoulement vers l'égout (fil gris)
+#define PIN_BAC 4      // entrée circuit fermé (fil violet)
+#define PIN_RECUP 5    // écoulement circuit fermé (fil bleu)
+#define PIN_POMPE 6    // pompe électrique (fil orange)
+#define PIN_PLONGEUR 7 // thermoplongeur (fil rouge)
 
 /* capteur */
 #define PIN_SONDE 10 // CS PIN pour la sonde
@@ -26,8 +26,8 @@
 // SCK 13
 
 /* constantes diverses */
-#define TEMP_MIN 27           // on ne nettoie pas en dessous de cette température
-#define TEMP_MAX 30           // couper la chauffe au dessus de cette température
+#define TEMP_MIN 70           // on ne nettoie pas en dessous de cette température
+#define TEMP_MAX 80           // couper le plongeur au dessus de cette température
 #define CYCLES_LAVAGE 3       // recommencer X fois
 #define DUREE_LAVAGE 60       // balancer la soude X secondes
 #define DUREE_DESINFECTION 60 // balancer le désinfectant X secondes
@@ -39,8 +39,8 @@
 #define bac(X) digitalWrite(PIN_BAC, !X)
 #define recup(X) digitalWrite(PIN_RECUP, !X)
 #define pompe(X) digitalWrite(PIN_POMPE, !X)
-#define chauffe(X) digitalWrite(PIN_CHAUFFE, !X)
-#define chauffeRead !digitalRead(PIN_CHAUFFE)
+#define plongeur(X) digitalWrite(PIN_PLONGEUR, !X)
+#define plongeurRead !digitalRead(PIN_PLONGEUR)
 
 //Sensor addresses:
 const byte CONFIG_REG_W = 0x80; // Config register write addr
@@ -70,44 +70,35 @@ double temperature() {
 
     sonde.MAX31865_full_read(&sonde_reg);          // Update MAX31855 readings 
 
-    if(0 == sonde_reg.status)                       // no fault, print info to serial port
-    {
+    if(0 == sonde_reg.status) {
         // calculate RTD temperature (simple calc, +/- 2 deg C from -100C to 100C)
         // more accurate curve can be used outside that range
         tmp = ((double)sonde_reg.rtd_res_raw / 32) - 256;
-        //Serial.print(tmp);                          // print RTD resistance
-        //Serial.println(" deg C");                   // print RTD temperature heading
-    }  // end of no-fault handling
-    else 
-    {
+        Serial.print(tmp);        // print RTD resistance
+        Serial.println(" deg C"); // print RTD temperature heading
+    } 
+    else {
         Serial.print("RTD Fault, register: ");
         Serial.println(sonde_reg.status);
-        if(0x80 & sonde_reg.status)
-        {
+        if(0x80 & sonde_reg.status) {
             Serial.println("RTD High Threshold Met");  // RTD high threshold fault
         }
-        else if(0x40 & sonde_reg.status)
-        {
+        else if(0x40 & sonde_reg.status) {
             Serial.println("RTD Low Threshold Met");   // RTD low threshold fault
         }
-        else if(0x20 & sonde_reg.status)
-        {
+        else if(0x20 & sonde_reg.status) {
             Serial.println("REFin- > 0.85 x Vbias");   // REFin- > 0.85 x Vbias
         }
-        else if(0x10 & sonde_reg.status)
-        {
+        else if(0x10 & sonde_reg.status) {
             Serial.println("FORCE- open");             // REFin- < 0.85 x Vbias, FORCE- open
         }
-        else if(0x08 & sonde_reg.status)
-        {
+        else if(0x08 & sonde_reg.status) {
             Serial.println("FORCE- open");             // RTDin- < 0.85 x Vbias, FORCE- open
         }
-        else if(0x04 & sonde_reg.status)
-        {
+        else if(0x04 & sonde_reg.status) {
             Serial.println("Over/Under voltage fault");  // overvoltage/undervoltage fault
         }
-        else
-        {
+        else {
             Serial.println("Unknown fault, check connection"); // print RTD temperature heading
         }
     }  // end of fault handling
@@ -115,20 +106,13 @@ double temperature() {
     return tmp;
 }
 
-/*
- * arrêt d'urgence. On coupe tout, on ferme tout.
- */
-void arreter() {
-    if (etat != ARRET) {
-        etat = ARRET;
-        Serial.println("Arret d'urgence");
-        pompe(0);
-        chauffe(0);
-        reseau(0);
-        bac(0);
-        delay(DUREE_ECOULEMENT*1000);
-        recup(0);
-        egout(0);
+void chauffer() {
+    if (!plongeurRead && temperature() < TEMP_MIN) { 
+        Serial.println("Activer la chauffe");
+        plongeur(1);
+    } else if (plongeurRead && temperature() > TEMP_MAX) {
+        Serial.println("Couper la chauffe");
+        plongeur(0);
     }
 }
 
@@ -138,21 +122,17 @@ void arreter() {
  */
 void attendre(unsigned int secondes) { 
     unsigned long t = millis();
-    while(millis()-t < secondes*1000UL){
+    while(millis()-t < secondes*1000UL) {
         // arrêt d'urgence : longjmp pour sortir de la fonction
         if (etat == ARRET) {
+            pompe(0);
+            plongeur(0);
+            reseau(0);
+            bac(0);
+            delay(DUREE_ECOULEMENT*1000);
+            recup(0);
+            egout(0);
             longjmp(env, 1);
-        }
-        // contrôle de la chauffe
-        if (etat == NETTOYAGE) {
-            if (temperature() < TEMP_MIN && !chauffeRead) { 
-                Serial.println("Activer la chauffe");
-                chauffe(1);
-            }
-            if (temperature() > TEMP_MAX && chauffeRead) {
-                Serial.println("Couper la chauffe");
-                chauffe(0);
-            }
         }
         delay(1000); 
     }
@@ -161,7 +141,8 @@ void attendre(unsigned int secondes) {
 /* cycle de rincage */
 void rincage(int secondes) {
     Serial.print("Rincage: ");
-    Serial.println(secondes);
+    Serial.print(secondes);
+    Serial.println(" secondes");
     bac(0);
     recup(0);
     egout(1);
@@ -170,6 +151,7 @@ void rincage(int secondes) {
     reseau(0);
     attendre(DUREE_ECOULEMENT);
     egout(0);
+    Serial.println("Fin du rincage");
 }
 
 void beep() {
@@ -184,25 +166,29 @@ void nettoyage() {
     etat = NETTOYAGE;
     // pré-rincage
     rincage(10); 
-    // attente de la chauffe
-    while (temperature() < TEMP_MIN) {
-        attendre(10);
-    }
+    // attendre que la température soit bonne
+    double temp = temperature();
+    //while (temp < TEMP_MIN) {
+        //attendre(1);
+    //}
     recup(1);
     bac(1);
     // nettoyage
     for (int i=0; i<CYCLES_LAVAGE; i++) {
+        Serial.print("Nettoyage, cycle ");
+        Serial.println(i+1);
         pompe(1);
         attendre(DUREE_LAVAGE);
         pompe(0);
         attendre(DUREE_ECOULEMENT);
     }
+    Serial.println("Fin des cycles de nettoyage");
     bac(0);
     recup(0);
     // post-rincage
     rincage(20);
     etat = ARRET;
-    beep();
+    Serial.println("Fin du nettoyage");
 }
 
 /* cycle de désinfection */
@@ -219,10 +205,29 @@ void desinfection() {
     recup(0);
     rincage(10);
     etat = ARRET;
-    beep();
+    Serial.println("Fin de la desinfection");
+}
+
+/*
+ * arrêt d'urgence. On coupe tout, on ferme tout.
+ */
+void arreter() {
+    if (etat != ARRET) {
+        etat = ARRET;
+        Serial.println("Arret d'urgence");
+    }
+}
+
+/* timer interrupt utilisée pour gérer l'allumage du thermoplongeur en fonction de la température */
+ISR(TIMER1_COMPA_vect){
+    if (etat == NETTOYAGE) {
+        chauffer();
+    }
 }
 
 void setup() {
+    cli(); // désactiver les interruptions
+    Serial.begin(9600);
     // interface utilisateur
     pinMode(PIN_ARRET, INPUT_PULLUP);
     pinMode(PIN_NETTOYAGE, INPUT_PULLUP);
@@ -238,25 +243,36 @@ void setup() {
     pinMode(PIN_BAC, OUTPUT);
     pinMode(PIN_RECUP, OUTPUT);
     pinMode(PIN_POMPE, OUTPUT);
-    pinMode(PIN_CHAUFFE, OUTPUT);
+    pinMode(PIN_PLONGEUR, OUTPUT);
     pinMode(PIN_SONDE, OUTPUT);
     // état initial de la machine
     etat = ARRET;
     pompe(0);
-    chauffe(0);
+    plongeur(0);
     reseau(0);
     bac(0);
     egout(0);
     recup(0);
     // initialiser le bouton d'arrêt d'urgence
     attachInterrupt(0, arreter, FALLING);
+    // initialiser le timer pour gérer la chauffe
+    TCCR1A = 0;// set entire TCCR1A register to 0
+    TCCR1B = 0;// same for TCCR1B
+    TCNT1  = 0;//initialize counter value to 0
+    // set compare match register for 1hz increments
+    OCR1A = 15624;// = (16*10^6) / (1*1024) - 1 (must be <65536)
+    // turn on CTC mode
+    TCCR1B |= (1 << WGM12);
+    // Set CS10 and CS12 bits for 1024 prescaler
+    TCCR1B |= (1 << CS12) | (1 << CS10);  
+    // enable timer compare interrupt
+    TIMSK1 |= (1 << OCIE1A); 
     // initialiser la lecture de température
-    Serial.begin(9600);
-    Serial.println("serial ok");
     SPI.begin();
     SPI.setDataMode(SPI_MODE3);
     sonde.MAX31865_config();
     delay(100);
+    sei(); // activer les interruptions
 }
 
 void loop() {
@@ -266,10 +282,12 @@ void loop() {
         // démarrage du nettoyage
         if(btnNettoyage.update() && btnNettoyage.read() == LOW) {
             nettoyage();
+            Serial.println("en attente d'une commande");
         }
         // démarrage de la désinfection
         if(btnDesinfection.update() && btnDesinfection.read() == LOW) {
             desinfection();
+            Serial.println("en attente d'une commande");
         }
     }
 }
