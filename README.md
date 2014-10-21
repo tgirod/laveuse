@@ -3,6 +3,6 @@ Grenaille](http://grenaille.blogspot.fr/).
 
 Dépendances :
 
-- https://github.com/thomasfredericks/Bounce-Arduino-Wiring/tree/master/Bounce2
-- https://github.com/sudar/Arduino-Makefile
+- [Bounce2](https://github.com/thomasfredericks/Bounce-Arduino-Wiring/tree/master/Bounce2)
+- [Arduino-mk](https://github.com/sudar/Arduino-Makefile) (optionnel)
 
