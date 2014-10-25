@@ -53,18 +53,20 @@ PWFusion_MAX31865_RTD sonde(PIN_SONDE);
 // Boutons pour lancer les cycles de nettoyage et désinfection
 Bounce btnNettoyage = Bounce();
 Bounce btnDesinfection = Bounce();
+Bounce btnArret = Bounce();
 
 jmp_buf env; // pour faire le saut en cas d'arrêt d'urgence
 
 /* l'état dans lequel se trouve la laveuse */
 static enum {ARRET, NETTOYAGE, DESINFECTION} etat;
+double temp = 0;
 
 /*
  * mesurer la température de l'eau et retourner le résultat en degrés
  */
-double temperature() {
+void temperature() {
     static struct var_max31865 sonde_reg;
-    double tmp = 0;
+    temp = 0;
 
     sonde_reg.RTD_type = 2;                        // un-comment for PT1000 RTD
 
@@ -73,8 +75,8 @@ double temperature() {
     if(0 == sonde_reg.status) {
         // calculate RTD temperature (simple calc, +/- 2 deg C from -100C to 100C)
         // more accurate curve can be used outside that range
-        tmp = ((double)sonde_reg.rtd_res_raw / 32) - 256;
-        Serial.print(tmp);        // print RTD resistance
+        temp = ((double)sonde_reg.rtd_res_raw / 32) - 256;
+        Serial.print(temp);        // print RTD resistance
         Serial.println(" deg C"); // print RTD temperature heading
     } 
     else {
@@ -102,15 +104,14 @@ double temperature() {
             Serial.println("Unknown fault, check connection"); // print RTD temperature heading
         }
     }  // end of fault handling
-
-    return tmp;
 }
 
 void chauffer() {
-    if (!plongeurRead && temperature() < TEMP_MIN) { 
+    temperature();
+    if (!plongeurRead && temp < TEMP_MIN) { 
         Serial.println("Activer la chauffe");
         plongeur(1);
-    } else if (plongeurRead && temperature() > TEMP_MAX) {
+    } else if (plongeurRead && temp > TEMP_MAX) {
         Serial.println("Couper la chauffe");
         plongeur(0);
     }
@@ -120,11 +121,13 @@ void chauffer() {
  * attendre X secondes, vérifier la chauffe toutes les secondes et lancer la
  * procédure d'arrêt d'urgence si nécessaire.
  */
-void attendre(unsigned int secondes) { 
+void attendre(int secondes) { 
     unsigned long t = millis();
     while(millis()-t < secondes*1000UL) {
-        // arrêt d'urgence : longjmp pour sortir de la fonction
-        if (etat == ARRET) {
+        // lire le bouton d'arrêt d'urgence
+        if(btnArret.update() && btnArret.read() == LOW) {
+            etat = ARRET;
+            Serial.println("Arret d'urgence");
             pompe(0);
             plongeur(0);
             reseau(0);
@@ -134,7 +137,6 @@ void attendre(unsigned int secondes) {
             egout(0);
             longjmp(env, 1);
         }
-        delay(1000); 
     }
 }
 
@@ -147,7 +149,11 @@ void rincage(int secondes) {
     recup(0);
     egout(1);
     reseau(1);
+    //attendre(2);
+    //Serial.println("demarrer la pompe");
+    //pompe(1);
     attendre(secondes);
+    pompe(0);
     reseau(0);
     attendre(DUREE_ECOULEMENT);
     egout(0);
@@ -167,10 +173,9 @@ void nettoyage() {
     // pré-rincage
     rincage(10); 
     // attendre que la température soit bonne
-    double temp = temperature();
-    //while (temp < TEMP_MIN) {
-        //attendre(1);
-    //}
+    while (temp < TEMP_MAX-1) {
+        attendre(10);
+    }
     recup(1);
     bac(1);
     // nettoyage
@@ -186,7 +191,9 @@ void nettoyage() {
     bac(0);
     recup(0);
     // post-rincage
-    rincage(20);
+    rincage(10);
+    rincage(10);
+    rincage(10);
     etat = ARRET;
     Serial.println("Fin du nettoyage");
 }
@@ -208,16 +215,6 @@ void desinfection() {
     Serial.println("Fin de la desinfection");
 }
 
-/*
- * arrêt d'urgence. On coupe tout, on ferme tout.
- */
-void arreter() {
-    if (etat != ARRET) {
-        etat = ARRET;
-        Serial.println("Arret d'urgence");
-    }
-}
-
 /* timer interrupt utilisée pour gérer l'allumage du thermoplongeur en fonction de la température */
 ISR(TIMER1_COMPA_vect){
     if (etat == NETTOYAGE) {
@@ -230,6 +227,8 @@ void setup() {
     Serial.begin(9600);
     // interface utilisateur
     pinMode(PIN_ARRET, INPUT_PULLUP);
+    btnArret.attach(PIN_ARRET);
+    btnArret.interval(5);
     pinMode(PIN_NETTOYAGE, INPUT_PULLUP);
     btnNettoyage.attach(PIN_NETTOYAGE);
     btnNettoyage.interval(5);
@@ -253,8 +252,6 @@ void setup() {
     bac(0);
     egout(0);
     recup(0);
-    // initialiser le bouton d'arrêt d'urgence
-    attachInterrupt(0, arreter, FALLING);
     // initialiser le timer pour gérer la chauffe
     TCCR1A = 0;// set entire TCCR1A register to 0
     TCCR1B = 0;// same for TCCR1B
@@ -282,12 +279,12 @@ void loop() {
         // démarrage du nettoyage
         if(btnNettoyage.update() && btnNettoyage.read() == LOW) {
             nettoyage();
-            Serial.println("en attente d'une commande");
+            break;
         }
         // démarrage de la désinfection
         if(btnDesinfection.update() && btnDesinfection.read() == LOW) {
             desinfection();
-            Serial.println("en attente d'une commande");
+            break;
         }
     }
 }
