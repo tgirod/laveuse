@@ -26,12 +26,12 @@
 // SCK 13
 
 /* constantes diverses */
-#define TEMP_MIN 70           // on ne nettoie pas en dessous de cette température
-#define TEMP_MAX 80           // couper le plongeur au dessus de cette température
-#define CYCLES_LAVAGE 3       // recommencer X fois
-#define DUREE_LAVAGE 60       // balancer la soude X secondes
+#define TEMP_MIN 20           // on ne nettoie pas en dessous de cette température FIXME
+#define TEMP_MAX 25           // couper le plongeur au dessus de cette température FIXME
+#define CYCLES_LAVAGE 4       // recommencer X fois
+#define DUREE_LAVAGE 40       // balancer la soude X secondes
 #define DUREE_DESINFECTION 60 // balancer le désinfectant X secondes
-#define DUREE_ECOULEMENT 10   // temps laissé pour l'écoulement de l'eau
+#define DUREE_ECOULEMENT 15   // temps laissé pour l'écoulement de l'eau
 
 /* quelques macros pour rendre le code plus explicite */
 #define reseau(X) digitalWrite(PIN_RESEAU, !X)
