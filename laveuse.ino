@@ -31,7 +31,7 @@
 #define CYCLES_LAVAGE 4       // recommencer X fois
 #define DUREE_LAVAGE 40       // balancer la soude X secondes
 #define DUREE_DESINFECTION 60 // balancer le désinfectant X secondes
-#define DUREE_ECOULEMENT 15   // temps laissé pour l'écoulement de l'eau
+#define DUREE_ECOULEMENT 20   // temps laissé pour l'écoulement de l'eau
 
 /* quelques macros pour rendre le code plus explicite */
 #define reseau(X) digitalWrite(PIN_RESEAU, !X)
