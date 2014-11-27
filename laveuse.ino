@@ -70,7 +70,7 @@ void temperature() {
 
     sonde_reg.RTD_type = 2;                        // un-comment for PT1000 RTD
 
-    sonde.MAX31865_full_read(&sonde_reg);          // Update MAX31855 readings 
+    sonde.MAX31865_full_read(&sonde_reg);          // Update MAX31855 readings
 
     if(0 == sonde_reg.status) {
         // calculate RTD temperature (simple calc, +/- 2 deg C from -100C to 100C)
@@ -78,7 +78,7 @@ void temperature() {
         temp = ((double)sonde_reg.rtd_res_raw / 32) - 256;
         Serial.print(temp);        // print RTD resistance
         Serial.println(" deg C"); // print RTD temperature heading
-    } 
+    }
     else {
         Serial.print("RTD Fault, register: ");
         Serial.println(sonde_reg.status);
@@ -108,7 +108,7 @@ void temperature() {
 
 void chauffer() {
     temperature();
-    if (!plongeurRead && temp < TEMP_MIN) { 
+    if (!plongeurRead && temp < TEMP_MIN) {
         Serial.println("Activer la chauffe");
         plongeur(1);
     } else if (plongeurRead && temp > TEMP_MAX) {
@@ -121,7 +121,7 @@ void chauffer() {
  * attendre X secondes, vérifier la chauffe toutes les secondes et lancer la
  * procédure d'arrêt d'urgence si nécessaire.
  */
-void attendre(int secondes) { 
+void attendre(int secondes) {
     unsigned long t = millis();
     while(millis()-t < secondes*1000UL) {
         // lire le bouton d'arrêt d'urgence
@@ -172,7 +172,7 @@ void nettoyage() {
     Serial.println("Nettoyage");
     etat = NETTOYAGE;
     // pré-rincage
-    rincage(10); 
+    rincage(10);
     // attendre que la température soit bonne
     while (temp < TEMP_MAX-1) {
         attendre(10);
