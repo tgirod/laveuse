@@ -153,7 +153,7 @@ void rincage(int secondes) {
     recup(0);
     egout(1);
     reseau(1);
-    attendre(2);
+    attendre(3);
     Serial.println("demarrer la pompe");
     pompe(1);
     attendre(secondes);
@@ -183,6 +183,7 @@ void nettoyage() {
     }
     recup(1);
     bac(1);
+    attendre(3);
     // nettoyage
     for (int i=0; i<CYCLES_LAVAGE; i++) {
         Serial.print("Nettoyage, cycle ");
@@ -210,6 +211,7 @@ void desinfection() {
     etat = DESINFECTION;
     recup(1);
     bac(1);
+    attendre(3);
     pompe(1);
     attendre(DUREE_DESINFECTION);
     Serial.println("ecoulement");
