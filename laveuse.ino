@@ -149,10 +149,11 @@ void rincage(int secondes) {
     recup(0);
     egout(1);
     reseau(1);
-    //attendre(2);
-    //Serial.println("demarrer la pompe");
-    //pompe(1);
+    attendre(2);
+    Serial.println("demarrer la pompe");
+    pompe(1);
     attendre(secondes);
+    Serial.println("arreter la pompe");
     pompe(0);
     reseau(0);
     attendre(DUREE_ECOULEMENT);
