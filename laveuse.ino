@@ -213,7 +213,7 @@ void desinfection() {
     attendre(DUREE_ECOULEMENT);
     bac(0);
     recup(0);
-    rincage(10);
+    rincage(6);
     etat = ARRET;
     Serial.println("Fin de la desinfection");
 }
