@@ -137,6 +137,10 @@ void attendre(int secondes) {
             egout(0);
             longjmp(env, 1);
         }
+        if (millis() % 1000 == 0 && etat == NETTOYAGE) {
+            chauffer();
+            delay(1);
+        }
     }
 }
 
@@ -218,15 +222,7 @@ void desinfection() {
     Serial.println("Fin de la desinfection");
 }
 
-/* timer interrupt utilisée pour gérer l'allumage du thermoplongeur en fonction de la température */
-ISR(TIMER1_COMPA_vect){
-    if (etat == NETTOYAGE) {
-        chauffer();
-    }
-}
-
 void setup() {
-    cli(); // désactiver les interruptions
     Serial.begin(9600);
     // interface utilisateur
     pinMode(PIN_ARRET, INPUT_PULLUP);
@@ -255,24 +251,11 @@ void setup() {
     bac(0);
     egout(0);
     recup(0);
-    // initialiser le timer pour gérer la chauffe
-    TCCR1A = 0;// set entire TCCR1A register to 0
-    TCCR1B = 0;// same for TCCR1B
-    TCNT1  = 0;//initialize counter value to 0
-    // set compare match register for 1hz increments
-    OCR1A = 15624;// = (16*10^6) / (1*1024) - 1 (must be <65536)
-    // turn on CTC mode
-    TCCR1B |= (1 << WGM12);
-    // Set CS10 and CS12 bits for 1024 prescaler
-    TCCR1B |= (1 << CS12) | (1 << CS10);  
-    // enable timer compare interrupt
-    TIMSK1 |= (1 << OCIE1A); 
     // initialiser la lecture de température
     SPI.begin();
     SPI.setDataMode(SPI_MODE3);
     sonde.MAX31865_config();
     delay(100);
-    sei(); // activer les interruptions
 }
 
 void loop() {
