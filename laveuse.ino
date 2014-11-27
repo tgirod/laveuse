@@ -186,6 +186,7 @@ void nettoyage() {
         pompe(1);
         attendre(DUREE_LAVAGE);
         pompe(0);
+        Serial.println("ecoulement");
         attendre(DUREE_ECOULEMENT);
     }
     Serial.println("Fin des cycles de nettoyage");
@@ -207,6 +208,7 @@ void desinfection() {
     bac(1);
     pompe(1);
     attendre(DUREE_DESINFECTION);
+    Serial.println("ecoulement");
     pompe(0);
     attendre(DUREE_ECOULEMENT);
     bac(0);
