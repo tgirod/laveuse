@@ -22,8 +22,6 @@
 // SCK 13
 
 /* constantes diverses */
-#define TEMP_MIN 80           // on ne nettoie pas en dessous de cette température FIXME
-#define TEMP_MAX 85           // couper le plongeur au dessus de cette température FIXME
 #define CYCLES_LAVAGE 4       // recommencer X fois
 #define DUREE_LAVAGE 40       // balancer la soude X secondes
 #define DUREE_DESINFECTION 60 // balancer le désinfectant X secondes
