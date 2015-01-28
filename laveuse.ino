@@ -13,7 +13,6 @@
 #define PIN_BAC 4      // entrée circuit fermé (fil violet)
 #define PIN_RECUP 5    // écoulement circuit fermé (fil bleu)
 #define PIN_POMPE 6    // pompe électrique (fil orange)
-#define PIN_PLONGEUR 7 // thermoplongeur (fil rouge)
 
 /* constantes diverses */
 #define CYCLES_LAVAGE 4       // recommencer X fois
