@@ -15,12 +15,6 @@
 #define PIN_POMPE 6    // pompe électrique (fil orange)
 #define PIN_PLONGEUR 7 // thermoplongeur (fil rouge)
 
-/* capteur */
-#define PIN_SONDE 10 // CS PIN pour la sonde
-// MOSI 11
-// MISO 12
-// SCK 13
-
 /* constantes diverses */
 #define CYCLES_LAVAGE 4       // recommencer X fois
 #define DUREE_LAVAGE 40       // balancer la soude X secondes
