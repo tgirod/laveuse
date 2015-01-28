@@ -14,18 +14,69 @@
 #define PIN_RECUP 5    // écoulement circuit fermé (fil bleu)
 #define PIN_POMPE 6    // pompe électrique (fil orange)
 
-/* constantes diverses */
-#define CYCLES_LAVAGE 4       // recommencer X fois
-#define DUREE_LAVAGE 40       // balancer la soude X secondes
-#define DUREE_DESINFECTION 60 // balancer le désinfectant X secondes
-#define DUREE_ECOULEMENT 20   // temps laissé pour l'écoulement de l'eau
-
 /* quelques macros pour rendre le code plus explicite */
 #define reseau(X) digitalWrite(PIN_RESEAU, !X)
 #define egout(X) digitalWrite(PIN_EGOUT, !X)
 #define bac(X) digitalWrite(PIN_BAC, !X)
 #define recup(X) digitalWrite(PIN_RECUP, !X)
 #define pompe(X) digitalWrite(PIN_POMPE, !X)
+
+enum actionId {
+    VANNE_PRODUIT,
+    VANNE_RINCAGE,
+    VANNE_FERME,
+    COUPER_RESEAU,
+    POMPER,
+    ATTENDRE,
+    FIN
+};
+
+struct action {
+    enum actionId nom;
+    unsigned int param;
+};
+
+struct action nettoyage[] = {
+    {VANNE_RINCAGE, 0},
+    {POMPER, 10},
+    {COUPER_RESEAU, 0},
+    {ATTENDRE, 10},
+    {VANNE_PRODUIT, 0},
+    {POMPER, 40},
+    {ATTENDRE, 30},
+    {POMPER, 40},
+    {ATTENDRE, 30},
+    {POMPER, 40},
+    {ATTENDRE, 30},
+    {POMPER, 40},
+    {ATTENDRE, 30},
+    {VANNE_RINCAGE, 0},
+    {POMPER, 10},
+    {COUPER_RESEAU, 0},
+    {ATTENDRE, 10},
+    {VANNE_RINCAGE, 0},
+    {POMPER, 10},
+    {COUPER_RESEAU, 0},
+    {ATTENDRE, 10},
+    {VANNE_RINCAGE, 0},
+    {POMPER, 10},
+    {COUPER_RESEAU, 0},
+    {ATTENDRE, 10},
+    {FIN, 0}
+};
+
+struct action desinfection[] = {
+    {VANNE_PRODUIT, 0},
+    {POMPER, 30},
+    {ATTENDRE, 30},
+    {POMPER, 30},
+    {ATTENDRE, 30},
+    {VANNE_RINCAGE, 0},
+    {POMPER, 6},
+    {COUPER_RESEAU, 0},
+    {ATTENDRE, 30},
+    {FIN, 0}
+};
 
 // Boutons pour lancer les cycles de nettoyage et désinfection
 Bounce btnNettoyage = Bounce();
@@ -41,7 +92,8 @@ static enum {ARRET, NETTOYAGE, DESINFECTION} etat;
  * attendre X secondes, vérifier la chauffe toutes les secondes et lancer la
  * procédure d'arrêt d'urgence si nécessaire.
  */
-void attendre(int secondes) {
+void attendre(int secondes)
+{
     unsigned long t = millis();
     while(millis()-t < secondes*1000UL) {
         // lire le bouton d'arrêt d'urgence
@@ -51,33 +103,9 @@ void attendre(int secondes) {
             pompe(0);
             reseau(0);
             bac(0);
-            delay(DUREE_ECOULEMENT*1000);
-            recup(0);
-            egout(0);
             longjmp(env, 1);
         }
     }
-}
-
-/* cycle de rincage */
-void rincage(int secondes) {
-    Serial.print("Rincage: ");
-    Serial.print(secondes);
-    Serial.println(" secondes");
-    bac(0);
-    recup(0);
-    egout(1);
-    reseau(1);
-    attendre(3);
-    Serial.println("demarrer la pompe");
-    pompe(1);
-    attendre(secondes);
-    Serial.println("arreter la pompe");
-    pompe(0);
-    reseau(0);
-    attendre(DUREE_ECOULEMENT);
-    egout(0);
-    Serial.println("Fin du rincage");
 }
 
 void beep() {
@@ -86,53 +114,82 @@ void beep() {
     noTone(PIN_BEEP);
 }
 
-/* cycle de nettoyage */
-void nettoyage() {
-    Serial.println("Nettoyage");
-    etat = NETTOYAGE;
-    // pré-rincage
-    rincage(10);
-    recup(1);
-    bac(1);
-    attendre(3);
-    // nettoyage
-    for (int i=0; i<CYCLES_LAVAGE; i++) {
-        Serial.print("Nettoyage, cycle ");
-        Serial.println(i+1);
-        pompe(1);
-        attendre(DUREE_LAVAGE);
-        pompe(0);
-        Serial.println("ecoulement");
-        attendre(DUREE_ECOULEMENT);
+int executer(struct action a)
+{
+    switch (a.nom) {
+        case VANNE_PRODUIT:
+            Serial.println("VANNE_PRODUIT");
+            reseau(0);
+            egout(0);
+            bac(1);
+            recup(1);
+            attendre(5);
+            return 0;
+        case VANNE_RINCAGE:
+            Serial.println("VANNE_RINCAGE");
+            bac(0);
+            recup(0);
+            egout(1);
+            reseau(1);
+            attendre(5);
+            return 0;
+        case COUPER_RESEAU:
+            Serial.println("COUPER_RESEAU");
+            reseau(0);
+            attendre(5);
+            return 0;
+        case VANNE_FERME:
+            Serial.println("VANNE_FERME");
+            reseau(0);
+            egout(0);
+            bac(0);
+            recup(0);
+            attendre(5);
+            return 0;
+        case POMPER:
+            Serial.print("POMPER ");
+            Serial.println(a.param);
+            pompe(1);
+            attendre(a.param);
+            pompe(0);
+            return 0;
+        case ATTENDRE:
+            Serial.print("ATTENDRE ");
+            Serial.println(a.param);
+            attendre(a.param);
+            return 0;
+        case FIN:
+            Serial.println("FIN");
+            pompe(0);
+            reseau(0);
+            bac(0);
+            egout(0);
+            recup(0);
+            beep();
+            return 1;
+        default:
+            return 1;
     }
-    Serial.println("Fin des cycles de nettoyage");
-    bac(0);
-    recup(0);
-    // post-rincage
-    rincage(10);
-    rincage(10);
-    rincage(10);
-    etat = ARRET;
-    Serial.println("Fin du nettoyage");
 }
 
-/* cycle de désinfection */
-void desinfection() {
-    Serial.println("Desinfection");
-    etat = DESINFECTION;
-    recup(1);
-    bac(1);
-    attendre(3);
-    pompe(1);
-    attendre(DUREE_DESINFECTION);
-    Serial.println("ecoulement");
-    pompe(0);
-    attendre(DUREE_ECOULEMENT);
-    bac(0);
-    recup(0);
-    rincage(6);
-    etat = ARRET;
-    Serial.println("Fin de la desinfection");
+void derouler(struct action as[])
+{
+    int i = 0;
+    int ret = 0;
+    while (ret == 0) {
+        ret = executer(as[i]);
+        i++;
+    }
+}
+
+void nettoyer()
+{
+    derouler(nettoyage);
+}
+
+void desinfecter()
+{
+    derouler(desinfection);
 }
 
 void setup() {
@@ -170,12 +227,12 @@ void loop() {
     while (1) {
         // démarrage du nettoyage
         if(btnNettoyage.update() && btnNettoyage.read() == LOW) {
-            nettoyage();
+            nettoyer();
             break;
         }
         // démarrage de la désinfection
         if(btnDesinfection.update() && btnDesinfection.read() == LOW) {
-            desinfection();
+            desinfecter();
             break;
         }
     }
