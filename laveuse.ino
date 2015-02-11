@@ -204,7 +204,6 @@ void setup() {
     pinMode(PIN_DESINFECTION, INPUT_PULLUP);
     btnDesinfection.attach(PIN_DESINFECTION);
     btnDesinfection.interval(5);
-    pinMode(PIN_BEEP, OUTPUT);
     // relais (4 électrovannes + chauffe + sonde (SPI CS)
     pinMode(PIN_RESEAU, OUTPUT);
     pinMode(PIN_EGOUT, OUTPUT);
