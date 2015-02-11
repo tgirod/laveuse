@@ -188,11 +188,13 @@ void derouler(struct action as[])
 
 void nettoyer()
 {
+    Serial.println("NETTOYAGE");
     derouler(nettoyage);
 }
 
 void desinfecter()
 {
+    Serial.println("DESINFECTION");
     derouler(desinfection);
 }
 
