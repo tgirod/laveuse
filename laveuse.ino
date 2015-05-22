@@ -26,6 +26,7 @@ enum actionId {
     VANNE_RINCAGE,
     VANNE_FERME,
     COUPER_RESEAU,
+    COUPER_BAC,
     POMPER,
     ATTENDRE,
     FIN
@@ -40,6 +41,7 @@ struct action nettoyage[] = {
     {VANNE_RINCAGE, 0},
     {POMPER, 10},
     {COUPER_RESEAU, 0},
+    {POMPER, 5},
     {ATTENDRE, 15},
     {VANNE_PRODUIT, 0},
     {POMPER, 30},
@@ -65,6 +67,7 @@ struct action nettoyage[] = {
     {VANNE_RINCAGE, 0},
     {POMPER, 10},
     {COUPER_RESEAU, 0},
+    {POMPER, 5},
     {ATTENDRE, 15},
     {FIN, 0}
 };
@@ -75,9 +78,12 @@ struct action desinfection[] = {
     {ATTENDRE, 30},
     {POMPER, 30},
     {ATTENDRE, 30},
+    {COUPER_BAC, 0},
+    {POMPER, 5},
     {VANNE_RINCAGE, 0},
     {POMPER, 6},
     {COUPER_RESEAU, 0},
+    {POMPER, 5},
     {ATTENDRE, 30},
     {FIN, 0}
 };
@@ -140,6 +146,11 @@ int executer(struct action a)
         case COUPER_RESEAU:
             Serial.println("COUPER_RESEAU");
             reseau(0);
+            attendre(5);
+            return 0;
+        case COUPER_BAC:
+            Serial.println("COUPER_BAC");
+            bac(0);
             attendre(5);
             return 0;
         case VANNE_FERME:
