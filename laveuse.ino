@@ -81,7 +81,7 @@ struct action desinfection[] = {
     {COUPER_BAC, 0},
     {POMPER, 5},
     {VANNE_RINCAGE, 0},
-    {POMPER, 6},
+    {POMPER, 3},
     {COUPER_RESEAU, 0},
     {POMPER, 5},
     {ATTENDRE, 30},
@@ -181,7 +181,7 @@ int executer(struct action a)
             pompe(0);
             reseau(0);
             bac(0);
-            egout(0);
+            egout(1);
             recup(0);
             return 1;
         default:
