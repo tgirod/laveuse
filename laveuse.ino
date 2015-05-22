@@ -5,7 +5,7 @@
 #define PIN_ARRET 2         // arrêt d'urgence (fil jaune) -- interruption
 #define PIN_NETTOYAGE A2    // lancement du nettoyage (fil rouge)
 #define PIN_DESINFECTION A1 // lancement de la désinfection (fil orange)
-#define PIN_BEEP A3         // avertisseur sonore
+#define PIN_BEEP 11         // avertisseur sonore
 
 /* asservissement */
 #define PIN_RESEAU A0  // prise d'eau du réseau (fil blanc)
@@ -119,8 +119,11 @@ void attendre(int secondes)
 }
 
 void beep() {
-    tone(PIN_BEEP, 1000);
-    delay(1000);
+    for (int i=0; i<10; i++) {
+        int freq = 5000 + random(5000);
+        tone(PIN_BEEP, freq, 100);
+        delay(100);
+    }
     noTone(PIN_BEEP);
 }
 
@@ -180,7 +183,6 @@ int executer(struct action a)
             bac(0);
             egout(0);
             recup(0);
-            beep();
             return 1;
         default:
             return 1;
@@ -227,6 +229,7 @@ void setup() {
     pinMode(PIN_BAC, OUTPUT);
     pinMode(PIN_RECUP, OUTPUT);
     pinMode(PIN_POMPE, OUTPUT);
+    pinMode(PIN_BEEP, OUTPUT);
     // état initial de la machine
     etat = ARRET;
     pompe(0);
@@ -240,6 +243,7 @@ void setup() {
 void loop() {
     setjmp(env);
     Serial.println("en attente d'une commande");
+    beep();
     while (1) {
         // démarrage du nettoyage
         if(btnNettoyage.update() && btnNettoyage.read() == LOW) {
